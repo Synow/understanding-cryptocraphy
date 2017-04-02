@@ -24,3 +24,18 @@ ATTACK = x1,x2, . . . ,x6 = 0,19,19,0,2,10.
 
 x1 = 3 * (13 - 13) mod 26 = 0
 x2 = 3 * (2 - 13) mod 26 = -33 = -7 = 26 -7 = 19
+
+__author__ = 'IITC'
+import string
+alphabet = dict(zip( string.ascii_lowercase,range(26)))
+cipher = "falszztysyjzyjkywjrztyjztyynaryjkyswarztyegyyj"
+cipherNum = map(lambda x:alphabet[x], cipher)
+plain = []
+for i in cipherNum:
+    plain.append((15*(i-22))%26)
+print(cipherNum)
+print(plain)
+print("Decrypt")
+
+res = map(lambda x: asc(97+x) , plain)
+print(res)
