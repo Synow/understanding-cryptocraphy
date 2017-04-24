@@ -1,5 +1,14 @@
 import numpy as np
 
+def num2bytes(num):
+    arr = []
+    for i in range(16):
+        byte = (num >> (8 * (15 - i))) & 0xff
+        if i % 4 == 0:
+            arr.append([byte])
+        else:
+            arr[int(i/4)].append(byte)
+    return arr
 
 def replace_bytes(array: bytearray, first: int, second: int, size: int):
     tmp = array[first:first + size]
