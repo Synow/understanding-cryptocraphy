@@ -1,6 +1,6 @@
 import numpy as np
-
-def num2bytes(num):
+import copy
+def num2mat(num):
     arr = []
     for i in range(16):
         byte = (num >> (8 * (15 - i))) & 0xff
@@ -9,6 +9,12 @@ def num2bytes(num):
         else:
             arr[int(i/4)].append(byte)
     return arr
+
+def mat2num(mat):
+    num = 0
+    for i in range(15,-1,-1):
+        num += mat[int(i/4)][i%4] * (16**((15-i)*2))
+    return num
 
 def replace_bytes(array: bytearray, first: int, second: int, size: int):
     tmp = array[first:first + size]
@@ -31,12 +37,12 @@ sbox = [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 
      , 0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e
      , 0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf
      , 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
-plaintext = bytearray(16)
-key = bytearray(16)
+plaintext = 0x3243f6a8885a308d313198a2e0370734
+key = 0x2b7e151628aed2a6abf7158809cf4f3c #0x5468617473206D79204B756E67204675
 
 # Key Scheduler
     # Generating RCON array (RC)
-keys = [key] * 11
+keys = [num2mat(key)]
 rc = [0]
 aes_prime = np.array([1, 0, 0, 0, 1, 1, 0, 1, 1])
 
@@ -49,38 +55,45 @@ for i in range(10):
     rc.append(num)
 
     # Generating keys
-for i in range(1, 11):
-    keys[i] = keys[i-1]
+for key_round in range(1, 11):
+    new_key = copy.deepcopy(keys[key_round - 1])
 
-    w3 = keys[i][12:16]  # Function G on w1
+    w3 = copy.deepcopy(new_key[3])  # Function G on w1
     tmp = w3[0]
-    w3[0] = w3[1]
-    w3[1] = w3[2]
-    w3[2] = w3[3]
-    w3[3] = tmp
+    w3[0] = sbox[w3[1]] ^ rc[key_round]  # Sbox + switch + RCON
+    w3[1] = sbox[w3[2]]
+    w3[2] = sbox[w3[3]]
+    w3[3] = sbox[tmp]
 
-    w3[0] = sbox[w3[0]]  # Sbox
-    w3[1] = sbox[w3[1]]
-    w3[2] = sbox[w3[2]]
-    w3[3] = sbox[w3[3]]
+    for i in range(4):
+        new_key[0][i] = new_key[0][i] ^ w3[i]
 
-    w3[0] = w3[0] ^ rc[i]  # RCON
+    for i in range(1,4):
+        for j in range(4):
+            new_key[i][j] ^= new_key[(i-1)][j]
+    keys.append(new_key)
 
-    keys[i][0:4] = keys[i][0:4] ^
+# Encryption
+cipher = num2mat(plaintext)
 
-for i in rc:
-    print("0x%x" % i, end=', ')
-print(plaintext)
+    # Init - key addition
+for i in range(16):
+        cipher[int(i/4)][i%4] ^= keys[0][int(i/4)][i%4]
+
+for encrypt_round in range(1):
+    # Byte Substitution
+    for i in range(16):
+        cipher[int(i/4)][i%4] = sbox[cipher[int(i/4)][i%4]]
+
+    # ShiftRows
+    tmp = copy.deepcopy(cipher)
+    for i in range(4):
+        for j in range(1,4):
+            tmp[i][j] = cipher[(i+j)%4][j]
 
 
-// scrach
->>> a[0:4] = '0xfe23'[2:].encode('utf-8')
->>> a[0:4]
-bytearray(b'fe23')
->>> a[0:4] = hex(int(a[0:4],16) ^ int('ff00',16))[2:].encode('utf-8')
->>> a[0:4]
-bytearray(b'1232')
->>> a[0:4] = hex(int(a[0:4],16) ^ int('ff00',16))[2:].encode('utf-8')
->>> a[0:4]
-bytearray(b'ed32')
->>>
+
+print(hex(mat2num(cipher)))
+
+for i in range(11):
+    print(hex(mat2num(keys[i])))
