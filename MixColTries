@@ -1,0 +1,28 @@
+import numpy as np
+
+def polly2num(z):
+    num = 0
+    for indx, bit in enumerate(reversed(z)):
+        if bit:
+            num += 2 ** indx
+    return num
+
+
+aes_prime = np.array([1, 0, 0, 0, 1, 1, 0, 1, 1])
+x1 = np.asarray(list(bin(int('d4',16))[2:]), dtype=float)
+x2 = np.asarray(list(bin(int('bf',16))[2:]), dtype=float)
+x3 = np.asarray(list(bin(int('5d',16))[2:]), dtype=float)
+x4 = np.asarray(list(bin(int('30',16))[2:]), dtype=float)
+y1 = np.asarray(list(bin(int('02',16))[2:]), dtype=float)
+y2 = np.asarray(list(bin(int('03',16))[2:]), dtype=float)
+y3 = np.asarray(list(bin(int('01',16))[2:]), dtype=float)
+y4 = np.asarray(list(bin(int('01',16))[2:]), dtype=float)
+z1 = polly2num(np.polydiv(np.polymul(x1,y1), aes_prime)[1])
+z2 = polly2num(np.polydiv(np.polymul(x2,y2), aes_prime)[1])
+z3 = polly2num(np.polydiv(np.polymul(x3,y3), aes_prime)[1])
+z4 = polly2num(np.polydiv(np.polymul(x4,y4), aes_prime)[1])
+z = z1^z2^z3^z4
+print (hex(z))
+z = np.polydiv(z, aes_prime)[1]
+
+
